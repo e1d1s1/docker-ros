@@ -1,6 +1,16 @@
 #!/bin/bash
 
-ROS_DOCKER_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
+#install
+#cd /tmp
+#git clone https://github.com/e1d1s1/docker-ros
+#cd docker-ros
+#cp -r . ~/.docker-ros
+#cp -r shell/ ~/.docker-ros
+
+#defined in bash.rc
+#ROS_DOCKER_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
+ROS_DOCKER_PATH=${DOCKER_ROS_INSTALL:-~/.docker-ros/}
+
 ROS_DOCKER_DEFAULT_IMG=jaci/ros
 
 ROS_DOCKER_HOME=${ROS_DOCKER_HOME:-$HOME}
@@ -9,6 +19,8 @@ ROS_DOCKER_XSOCK=/tmp/.X11-unix
 ROS_DOCKER_XAUTH=/tmp/.docker.xauth
 
 ROS_DOCKER_VERS_FILE=".docker-ros-version"
+LOCAL_FILE="./$ROS_DOCKER_VERS_FILE"
+USER_FILE="$ROS_DOCKER_PATH/$ROS_DOCKER_VERS_FILE"
 
 ros-xauth() {
   touch $1
@@ -16,17 +28,14 @@ ros-xauth() {
 }
 
 ros-version() {
-  LOCAL_FILE="./$ROS_DOCKER_VERS_FILE"
-  USER_FILE="$ROS_DOCKER_PATH/$ROS_DOCKER_VERS_FILE"
-
   if [[ $# -gt 0 ]]; then
     action="$1"
-    if [[ "$action" == "get" ]]; then
+    if [[ "$action" == "get" || "$action" == "get-local" ]]; then
       if [[ -f $LOCAL_FILE ]]; then
         cat $LOCAL_FILE
       elif [[ -f $USER_FILE ]]; then
         cat $USER_FILE
-      else
+      elif [[ "$action" == "get" ]]; then
         echo $ROS_DOCKER_DEFAULT_IMG:melodic
       fi
     elif [[ "$action" == "set" ]]; then
@@ -66,7 +75,9 @@ ros-launch() {
   local nvidia=
   local root=
   local confined=
-  local image="$(ros-version get)"
+  local image="$(ros-version get-local)"
+  local unrealsimplugin=
+  local unreal=
 
   # Try to detect nvidia support
   if command -v nvidia-smi > /dev/null; then
@@ -124,8 +135,19 @@ ros-launch() {
         shift
         shift
         ;;
+      -s|--unrealsimulation)
+        unreal="$2"
+        unrealsimplugin="$3"
+        shift
+        shift
+        shift
+        ;;
       *)
-        break
+        if [[ -z "$image" ]]; then
+          echo "using image $ROS_DOCKER_DEFAULT_IMG:$1"
+          image="$ROS_DOCKER_DEFAULT_IMG:$1"
+        fi
+        shift
         ;;
     esac
   done
@@ -152,6 +174,28 @@ ros-launch() {
     # NVIDIA Runtime Enabled
     args=( "${args[@]}" --runtime=nvidia )
   fi
+  
+  if [[ -n "$unreal" ]]; then
+    args=( 
+      "${args[@]}"
+      --volume $unreal:/UnrealEngine
+    )
+    
+    if [[ "${unrealsimulation,,}" == *"AirSim"* ]]; then
+      args=( 
+        "${args[@]}"
+        --volume $unrealsimulation:/AirSim
+      )
+    fi
+    
+    if [[ "${unrealsimulation,,}" == *"carla"* ]]; then
+      args=( 
+        "${args[@]}"
+        --volume $unrealsimulation:/carla
+      )
+    fi
+    
+  fi
 
   if [[ -z "$root" ]]; then
     # Build new container with appropriate user
@@ -163,7 +207,9 @@ ros-launch() {
       --volume $ROS_DOCKER_HOME:$HOME
     )
 
+set -x
     image=$(docker build -q --build-arg FROM=$image --build-arg USER=$USER --build-arg UID=$UID --build-arg GID=$GID $ROS_DOCKER_PATH)
+set +x
   fi
 
   if [[ -z "$confined" ]]; then

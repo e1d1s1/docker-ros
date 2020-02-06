@@ -1,7 +1,9 @@
-ROS Docker Images
+ROS Docker Images + Unreal Simulation
 =====
 
 This project provides docker images for ROS, along with optional NVIDIA acceleration support, with a friendly startup script and VSCode development support.
+
+Simulation tooling for Unreal Engine and associated autonomous driving/flying plugins such as AirSim and CARLA are also available.
 
 Example use cases:
   - Testing a ROS network in a containerized environment
