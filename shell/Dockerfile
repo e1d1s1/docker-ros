@@ -12,13 +12,6 @@ RUN groupadd --gid $GID $USER && \
     echo "${USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USER && \
     chmod 0440 /etc/sudoers.d/$USER
 
-#RUN apt-get update -y && \
-#    apt-get dist-upgrade -y && \
-#    rm -r /var/lib/apt/lists/*
-
-RUN apt-get update && apt-get install -y --force-yes --fix-missing --no-install-recommends \
-    net-tools \
-    mesa-utils \
-    rsync
+RUN apt-get update && apt-get install sudo
 
 USER $USER

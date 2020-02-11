@@ -8,7 +8,7 @@
 #cp -r shell/ ~/.docker-ros
 
 #defined in bash.rc
-#ROS_DOCKER_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
+#DOCKER_ROS_INSTALL="$( cd "$(dirname "$0")" ; pwd -P )"
 ROS_DOCKER_PATH=${DOCKER_ROS_INSTALL:-~/.docker-ros/}
 
 ROS_DOCKER_DEFAULT_IMG=jaci/ros
@@ -19,8 +19,9 @@ ROS_DOCKER_XSOCK=/tmp/.X11-unix
 ROS_DOCKER_XAUTH=/tmp/.docker.xauth
 
 ROS_DOCKER_VERS_FILE=".docker-ros-version"
-LOCAL_FILE="./$ROS_DOCKER_VERS_FILE"
-USER_FILE="$ROS_DOCKER_PATH/$ROS_DOCKER_VERS_FILE"
+ROS_DOCKER_IMG_FILE=".docker-ros-image"
+LOCAL_VERS_FILE="./$ROS_DOCKER_VERS_FILE"
+USER_VERS_FILE="$ROS_DOCKER_PATH/$ROS_DOCKER_VERS_FILE"
 
 ros-xauth() {
   touch $1
@@ -31,26 +32,26 @@ ros-version() {
   if [[ $# -gt 0 ]]; then
     action="$1"
     if [[ "$action" == "get" || "$action" == "get-local" ]]; then
-      if [[ -f $LOCAL_FILE ]]; then
-        cat $LOCAL_FILE
-      elif [[ -f $USER_FILE ]]; then
-        cat $USER_FILE
+      if [[ -f $LOCAL_VERS_FILE ]]; then
+        cat $LOCAL_VERS_FILE
+      elif [[ -f $USER_VERS_FILE ]]; then
+        cat $USER_VERS_FILE
       elif [[ "$action" == "get" ]]; then
         echo $ROS_DOCKER_DEFAULT_IMG:melodic
       fi
     elif [[ "$action" == "set" ]]; then
       if [[ $# -eq 2 ]]; then
-        echo $ROS_DOCKER_DEFAULT_IMG:$2 > $USER_FILE
+        echo $ROS_DOCKER_DEFAULT_IMG:$2 > $USER_VERS_FILE
       elif [[ $# -eq 3 ]] && [[ "$2" == "-i" ]]; then
-        echo $3 > $USER_FILE
+        echo $3 > $USER_VERS_FILE
       else
         echo "Usage: ros-version set [-i image] [version]"
       fi
     elif [[ "$action" == "set-local" ]]; then
       if [[ $# -eq 2 ]]; then
-        echo $ROS_DOCKER_DEFAULT_IMG:$2 > $LOCAL_FILE
+        echo $ROS_DOCKER_DEFAULT_IMG:$2 > $LOCAL_VERS_FILE
       elif [[ $# -eq 3 ]] && [[ "$2" == "-i" ]]; then
-        echo $3 > $LOCAL_FILE
+        echo $3 > $LOCAL_VERS_FILE
       else
         echo "Usage: ros-version set [-i image] [version]"
       fi
@@ -78,6 +79,9 @@ ros-launch() {
   local image="$(ros-version get-local)"
   local unrealsimplugin=
   local unreal=
+  local layer=
+  local layername=
+  local tag="latest"
 
   # Try to detect nvidia support
   if command -v nvidia-smi > /dev/null; then
@@ -130,6 +134,13 @@ ros-launch() {
         shift
         shift
         ;;
+      -l|--customlayer)
+        layer="$2"
+        layername="$3"
+        shift
+        shift
+        shift
+        ;;        
       -v|--version)
         image="$ROS_DOCKER_DEFAULT_IMG:$2"
         shift
@@ -146,6 +157,7 @@ ros-launch() {
         if [[ -z "$image" ]]; then
           echo "using image $ROS_DOCKER_DEFAULT_IMG:$1"
           image="$ROS_DOCKER_DEFAULT_IMG:$1"
+          tag="$1"
         fi
         shift
         ;;
@@ -181,7 +193,7 @@ ros-launch() {
       --volume $unreal:/UnrealEngine
     )
     
-    if [[ "${unrealsimulation,,}" == *"AirSim"* ]]; then
+    if [[ "${unrealsimulation,,}" == *"airsim"* ]]; then
       args=( 
         "${args[@]}"
         --volume $unrealsimulation:/AirSim
@@ -206,10 +218,20 @@ ros-launch() {
       --env GID=$GID
       --volume $ROS_DOCKER_HOME:$HOME
     )
-
-set -x
-    image=$(docker build -q --build-arg FROM=$image --build-arg USER=$USER --build-arg UID=$UID --build-arg GID=$GID $ROS_DOCKER_PATH)
-set +x
+    
+    echo "Building docker image from $image"
+       
+    if [[ -n "$layer" ]]; then
+      echo "building custom layer as $layername:$tag"
+      $(docker build -q -t ${layername}:${tag} --build-arg FROM=$image $layer)
+      echo "base layer complete"
+      ros-version set-local -i ${layername}:${tag}
+      image=$(docker build -q --build-arg FROM=${layername}:${tag} --build-arg USER=$USER --build-arg UID=$UID --build-arg GID=$GID $ROS_DOCKER_PATH)
+    else
+      image=$(docker build -q --build-arg FROM=$image --build-arg USER=$USER --build-arg UID=$UID --build-arg GID=$GID $ROS_DOCKER_PATH)
+    fi
+    
+    echo "build complete for $image"
   fi
 
   if [[ -z "$confined" ]]; then
