@@ -144,12 +144,10 @@ ros-launch() {
 		shift
 		;;
       *)
-        if [[ -z "$image" ]]; then
-          echo "using image $ROS_DOCKER_DEFAULT_IMG:$1"
-          image="$ROS_DOCKER_DEFAULT_IMG:$1"
-          tag="$1"
-        fi
-        shift
+		if [[ -z "$image" ]]; then
+		  tag="$1"
+		fi
+		break
         ;;
     esac
   done
@@ -170,6 +168,11 @@ ros-launch() {
       --volume="${XAUTH}:${XAUTH}:rw" 
       --env="XAUTHORITY=${XAUTH}"
     )
+  fi
+  
+  if [[ -z "$image" ]]; then
+	image="$ROS_DOCKER_DEFAULT_IMG:$tag"
+	shift
   fi
   
   if [[ -z "$network" ]]; then
@@ -221,7 +224,7 @@ ros-launch() {
 
   args=( "${args[@]}" "${dockerargs[@]}" $image )
   
-  echo "args: ${args[@]}"
+  echo "args: ${args[@]} pass: $@"
 
   docker run ${args[@]} $@
 }
