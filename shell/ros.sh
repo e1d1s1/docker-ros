@@ -171,8 +171,8 @@ ros-launch() {
   fi
   
   if [[ -z "$image" ]]; then
-	image="$ROS_DOCKER_DEFAULT_IMG:$tag"
-	shift
+    image="$ROS_DOCKER_DEFAULT_IMG:$tag"
+    shift
   fi
   
   if [[ -z "$network" ]]; then
