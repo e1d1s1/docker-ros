@@ -3,8 +3,6 @@ ROS Docker Images + Unreal Simulation
 
 This project provides docker images for ROS, along with optional NVIDIA acceleration support, with a friendly startup script and VSCode development support.
 
-Simulation tooling for Unreal Engine and associated autonomous driving/flying plugins such as AirSim and CARLA are also available.
-
 Example use cases:
   - Testing a ROS network in a containerized environment
   - Running ROS melodic on Ubuntu 19.04, or on any unsupported platform
@@ -64,6 +62,18 @@ By default, the `ros` script will automatically:
 You can specify your own image with `--image image`:
 ```
 $ ros --image myname/myimage:version
+```
+
+You can build a custom local image based on an image from the docker hub (jaci/ros by default) using a custom local Dockerfile layer on top of it to automate installation of any desired packages or unique setup with `--layer path/to/Dockerfile new_image_name`
+  - The directory from which you run this command will cache the image name and ros version tag using set-local so you can launch with the default command in that directry subsequently and it will load your image seamlessly. 
+  - Roughly equivalent to simply loading the default image, installing a bunch of packages, commiting the container to an image named new_image_name:ros_version, and then manually calling ros set-local -i new_image_name:ros_version.
+  - Your custom Dockerfile should take a FROM argument to base the image upon
+
+```
+$ ros kinetic --customlayer ~/myproject/Dockerfile myimage
+# will build myimage given the passed Dockerfile and allow either of the following to load that image later when called from same directory path:
+$ ros kinetic
+$ ros --image myimage:kinetic
 ```
 
 You can launch a program directly from the ros script if you don't require a bash prompt:

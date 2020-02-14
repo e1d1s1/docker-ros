@@ -1,14 +1,7 @@
 #!/bin/bash
 
-#install
-#cd /tmp
-#git clone https://github.com/e1d1s1/docker-ros
-#cd docker-ros
-#cp -r . ~/.docker-ros
-#cp -r shell/ ~/.docker-ros
-
 #defined in bash.rc
-#DOCKER_ROS_INSTALL="$( cd "$(dirname "$0")" ; pwd -P )"
+#DOCKER_ROS_INSTALL=<path_to_your_docker-ros>
 ROS_DOCKER_PATH=${DOCKER_ROS_INSTALL:-~/.docker-ros/}
 
 ROS_DOCKER_DEFAULT_IMG=jaci/ros
@@ -67,7 +60,6 @@ ros-version() {
 
 ros-launch() {
   local args=(
-    --net=host 
     --cap-add=SYS_PTRACE
     --volume="$(pwd):/work"
   )
@@ -78,11 +70,10 @@ ros-launch() {
   local root=
   local confined=
   local image="$(ros-version get-local)"
-  local unrealsimplugin=
-  local unreal=
   local layer=
   local layername=
   local tag="latest"
+  local network="host"
 
   # Try to detect nvidia support
   if command -v nvidia-smi > /dev/null; then
@@ -135,7 +126,7 @@ ros-launch() {
         shift
         shift
         ;;
-      -l|--customlayer)
+      --customlayer)
         layer="$2"
         layername="$3"
         shift
@@ -147,13 +138,11 @@ ros-launch() {
         shift
         shift
         ;;
-      -s|--unrealsimulation)
-        unreal="$2"
-        unrealsimplugin="$3"
-        shift
-        shift
-        shift
-        ;;
+      --network)
+		network="$2"
+		shift
+		shift
+		;;
       *)
         if [[ -z "$image" ]]; then
           echo "using image $ROS_DOCKER_DEFAULT_IMG:$1"
@@ -182,32 +171,18 @@ ros-launch() {
       --env="XAUTHORITY=${XAUTH}"
     )
   fi
+  
+  if [[ -z "$network" ]]; then
+    # default use host network
+	args=( "${args[@]}" --net=host  )
+  else
+	# use user defined network
+    args=( "${args[@]}" --net=${network} )
+  fi
 
   if [[ -n "$nvidia" ]]; then
     # NVIDIA Runtime Enabled
     args=( "${args[@]}" --gpus all )
-  fi
-  
-  if [[ -n "$unreal" ]]; then
-    args=( 
-      "${args[@]}"
-      --volume $unreal:/UnrealEngine
-    )
-    
-    if [[ "${unrealsimulation,,}" == *"airsim"* ]]; then
-      args=( 
-        "${args[@]}"
-        --volume $unrealsimulation:/AirSim
-      )
-    fi
-    
-    if [[ "${unrealsimulation,,}" == *"carla"* ]]; then
-      args=( 
-        "${args[@]}"
-        --volume $unrealsimulation:/carla
-      )
-    fi
-    
   fi
 
   if [[ -z "$root" ]]; then
@@ -224,7 +199,7 @@ ros-launch() {
        
     if [[ -n "$layer" ]]; then
       echo "building custom layer as $layername:$tag"
-      $(docker build -q -t ${layername}:${tag} --build-arg FROM=$image $layer)
+      docker build -q -t ${layername}:${tag} --build-arg FROM=$image $layer
       echo "base layer complete"
       ros-version set-local -i ${layername}:${tag}
       image=$(docker build -q --build-arg FROM=${layername}:${tag} --build-arg USER=$USER --build-arg UID=$UID --build-arg GID=$GID $ROS_DOCKER_PATH)
@@ -245,6 +220,8 @@ ros-launch() {
   fi
 
   args=( "${args[@]}" "${dockerargs[@]}" $image )
+  
+  echo "args: ${args[@]}"
 
   docker run ${args[@]} $@
 }
