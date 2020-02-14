@@ -3,7 +3,6 @@
 #defined in bash.rc
 #DOCKER_ROS_INSTALL=<path_to_your_docker-ros>
 ROS_DOCKER_PATH=${DOCKER_ROS_INSTALL:-~/.docker-ros/}
-
 ROS_DOCKER_DEFAULT_IMG=jaci/ros
 
 ROS_DOCKER_HOME=${ROS_DOCKER_HOME:-$HOME}
@@ -12,8 +11,6 @@ ROS_DOCKER_XSOCK=/tmp/.X11-unix
 ROS_DOCKER_XAUTH=/tmp/.docker.xauth
 
 ROS_DOCKER_VERS_FILE=".docker-ros-version"
-LOCAL_VERS_FILE="./$ROS_DOCKER_VERS_FILE"
-USER_VERS_FILE="$ROS_DOCKER_PATH/$ROS_DOCKER_VERS_FILE"
 
 ros-xauth() {
   touch $1
@@ -21,29 +18,32 @@ ros-xauth() {
 }
 
 ros-version() {
+  LOCAL_FILE="./$ROS_DOCKER_VERS_FILE"
+  USER_FILE="$ROS_DOCKER_PATH/$ROS_DOCKER_VERS_FILE"
+
   if [[ $# -gt 0 ]]; then
     action="$1"
-    if [[ "$action" == "get" || "$action" == "get-local" ]]; then
-      if [[ -f $LOCAL_VERS_FILE ]]; then
-        cat $LOCAL_VERS_FILE
-      elif [[ -f $USER_VERS_FILE ]]; then
-        cat $USER_VERS_FILE
-      elif [[ "$action" == "get" ]]; then
-        echo $ROS_DOCKER_DEFAULT_IMG:melodic
+    if [[ "$action" == "get" ]]; then
+      if [[ -f $LOCAL_FILE ]]; then
+        cat $LOCAL_FILE
+      elif [[ -f $USER_FILE ]]; then
+        cat $USER_FILE
+      else
+        echo $ROS_DOCKER_DEFAULT_IMG
       fi
     elif [[ "$action" == "set" ]]; then
       if [[ $# -eq 2 ]]; then
-        echo $ROS_DOCKER_DEFAULT_IMG:$2 > $USER_VERS_FILE
+        echo $ROS_DOCKER_DEFAULT_IMG:$2 > $USER_FILE
       elif [[ $# -eq 3 ]] && [[ "$2" == "-i" ]]; then
-        echo $3 > $USER_VERS_FILE
+        echo $3 > $USER_FILE
       else
         echo "Usage: ros-version set [-i image] [version]"
       fi
     elif [[ "$action" == "set-local" ]]; then
       if [[ $# -eq 2 ]]; then
-        echo $ROS_DOCKER_DEFAULT_IMG:$2 > $LOCAL_VERS_FILE
+        echo $ROS_DOCKER_DEFAULT_IMG:$2 > $LOCAL_FILE
       elif [[ $# -eq 3 ]] && [[ "$2" == "-i" ]]; then
-        echo $3 > $LOCAL_VERS_FILE
+        echo $3 > $LOCAL_FILE
       else
         echo "Usage: ros-version set [-i image] [version]"
       fi
@@ -68,10 +68,10 @@ ros-launch() {
   local nvidia=
   local root=
   local confined=
-  local image="$(ros-version get-local)"
+  local image="$(ros-version get)"
   local layer=
   local layername=
-  local tag="latest"
+  local tag="melodic"
   local network="host"
 
   # Try to detect nvidia support
@@ -125,9 +125,12 @@ ros-launch() {
         shift
         shift
         ;;
-      --customlayer)
+      -l|--customlayer)
         layer="$2"
         layername="$3"
+        tag="$4"
+        image="$ROS_DOCKER_DEFAULT_IMG:$tag"
+        shift
         shift
         shift
         shift
@@ -143,15 +146,20 @@ ros-launch() {
         shift
         ;;
       *)
-        if [[ -z "$image" ]]; then
-          tag="$1"
-        fi
         break
         ;;
     esac
   done
-
-  echo "Starting ROS Docker Container with image $image"
+  
+  if [[ -z "$layer" ]]; then
+    # you can define just a base image without ros version tag in the .docker-ros-version and pass it on command line
+    if [[ ${image} != *":"* ]]; then
+      tag="$1"
+      shift
+      image="${image}:${tag}" 
+      echo "Using image: $image"
+    fi
+  fi
 
   if [[ -n "$withx" ]]; then
     # X Forwarding Enabled
@@ -169,11 +177,6 @@ ros-launch() {
     )
   fi
   
-  if [[ -z "$image" ]]; then
-    image="$ROS_DOCKER_DEFAULT_IMG:$tag"
-    shift
-  fi
-  
   if [[ -z "$network" ]]; then
     # default use host network
     args=( "${args[@]}" --net=host  )
@@ -185,6 +188,7 @@ ros-launch() {
   if [[ -n "$nvidia" ]]; then
     # NVIDIA Runtime Enabled
     args=( "${args[@]}" --gpus all )
+    echo "GPU acceleration flag enabled"
   fi
 
   if [[ -z "$root" ]]; then
@@ -196,16 +200,14 @@ ros-launch() {
       --env GID=$GID
       --volume $ROS_DOCKER_HOME:$HOME
     )
-    
-    echo "Building docker image from $image"
        
     if [[ -n "$layer" ]]; then
-      echo "building custom layer as $layername:$tag"
+      echo "building custom layer as ${layername}:${tag}"
       docker build -q -t ${layername}:${tag} --build-arg FROM=$image $layer
-      echo "base layer complete"
-      ros-version set-local -i ${layername}:${tag}
+      echo "base layer complete, adding user info"
       image=$(docker build -q --build-arg FROM=${layername}:${tag} --build-arg USER=$USER --build-arg UID=$UID --build-arg GID=$GID $ROS_DOCKER_PATH)
     else
+      echo "adding user info to ${image}" 
       image=$(docker build -q --build-arg FROM=$image --build-arg USER=$USER --build-arg UID=$UID --build-arg GID=$GID $ROS_DOCKER_PATH)
     fi
     

@@ -26,6 +26,9 @@ cp -r shell/ ~/.docker-ros
 2. Edit your `.bashrc` / `.zshrc` to include the following lines
 ```bash
 export UID=${UID}
+# Debian/Ubuntu:
+export GID=$(id -g $USER)
+# other systems
 export GID=${GID}
 
 source ~/.docker-ros/ros.sh
@@ -70,10 +73,21 @@ You can build a custom local image based on an image from the docker hub (jaci/r
   - Your custom Dockerfile should take a FROM argument to base the image upon
 
 ```
-$ ros kinetic --customlayer ~/myproject/Dockerfile myimage
-# will build myimage given the passed Dockerfile and allow either of the following to load that image later when called from same directory path:
-$ ros kinetic
+$ ros --customlayer ~/path_to_dockerfile_directory/ myimage_name kinetic
+$ # will build myimage based on a kinetic base with additional layer as defined by the passed Dockerfile directory path. 
+$ ros-version set-local -i myimage:kinetic
+$ # This allows the following to load that custom image later when called from same directory path:
+$ ros
+$ # Or any other path you can still call the custom image by full name:tag
 $ ros --image myimage:kinetic
+
+$ # repeat for a melodic variant
+$ ros --customlayer ~/path_to_dockerfile_directory myimage melodic
+$ # specify only the base image name in the local path
+$ ros-version set-local -i myimage
+$ # now you can call either variant from this directoy, specifying version
+$ ros melodic
+$ ros kinetic
 ```
 
 You can launch a program directly from the ros script if you don't require a bash prompt:
