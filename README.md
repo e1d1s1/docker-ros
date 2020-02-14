@@ -1,4 +1,4 @@
-ROS Docker Images + Unreal Simulation
+ROS Docker Images
 =====
 
 This project provides docker images for ROS, along with optional NVIDIA acceleration support, with a friendly startup script and VSCode development support.
