@@ -35,6 +35,9 @@ source ~/.docker-ros/ros.sh
 
 # OPTIONAL: Isolate the default HOME for the docker container if you don't want to passthrough your own.
 ROS_DOCKER_HOME=path/to/my/isolated/home
+
+# OPTIONAL: If you "install" the docker-ros shell somewhere else, specifiy it
+DOCKER_ROS_INSTALL=~/.docker-ros/
 ```
 
 3. Install `nvidia-docker2` if you have a NVIDIA GPU: [nvidia-docker repo](https://github.com/NVIDIA/nvidia-docker)
