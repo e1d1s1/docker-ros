@@ -67,6 +67,7 @@ ros-version() {
 ros-launch() {
   local args=(
     --net=host 
+    --cap-add=SYS_PTRACE
     --volume="$(pwd):/work"
   )
 
@@ -172,7 +173,7 @@ ros-launch() {
 
   if [[ -n "$nvidia" ]]; then
     # NVIDIA Runtime Enabled
-    args=( "${args[@]}" --runtime=nvidia )
+    args=( "${args[@]}" --gpus all )
   fi
   
   if [[ -n "$unreal" ]]; then
@@ -181,7 +182,7 @@ ros-launch() {
       --volume $unreal:/UnrealEngine
     )
     
-    if [[ "${unrealsimulation,,}" == *"AirSim"* ]]; then
+    if [[ "${unrealsimulation,,}" == *"airsim"* ]]; then
       args=( 
         "${args[@]}"
         --volume $unrealsimulation:/AirSim
