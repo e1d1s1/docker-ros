@@ -139,15 +139,15 @@ ros-launch() {
         shift
         ;;
       --network)
-		network="$2"
-		shift
-		shift
-		;;
+        network="$2"
+        shift
+        shift
+        ;;
       *)
-		if [[ -z "$image" ]]; then
-		  tag="$1"
-		fi
-		break
+        if [[ -z "$image" ]]; then
+          tag="$1"
+        fi
+        break
         ;;
     esac
   done
@@ -177,9 +177,9 @@ ros-launch() {
   
   if [[ -z "$network" ]]; then
     # default use host network
-	args=( "${args[@]}" --net=host  )
+    args=( "${args[@]}" --net=host  )
   else
-	# use user defined network
+    # use user defined network
     args=( "${args[@]}" --net=${network} )
   fi
 
