@@ -225,7 +225,7 @@ ros-launch() {
 
   args=( "${args[@]}" "${dockerargs[@]}" $image )
   
-  echo "args: ${args[@]} pass: $@"
+  # echo "args: ${args[@]} pass: $@"
 
   docker run ${args[@]} $@
 }
