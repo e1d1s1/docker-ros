@@ -70,7 +70,7 @@ $ ros --image myname/myimage:version
 
 You can build a custom local image based on an image from the docker hub (jaci/ros by default) applying a custom local Dockerfile layer on top of it to automate installation of any desired packages or unique setup with `--customlayer path/to/Dockerfile/ new_image_name ros_version`
   - Roughly equivalent to simply loading the default image, installing a bunch of packages, and then commiting the container to an image named new_image_name:ros_version.
-  - Your custom Dockerfile should take a FROM argument to base the image upon, and a USER argument for the user name.
+  - Your custom Dockerfile should take a FROM argument to base the image upon.
 
 ```
 $ # will build myimage based on a kinetic base with additional layer as defined by the passed Dockerfile directory path. 
