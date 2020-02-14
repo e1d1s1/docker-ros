@@ -61,31 +61,32 @@ By default, the `ros` script will automatically:
   - Create a new container image, passing through your local user and `$HOME`
   - Passthrough your current directory to `/work` via docker bind mount
   - Make the container interactive (`-it --rm`)
+  - Sets up host networking by default (or another networking type as specified: `--network=bridge`
 
 You can specify your own image with `--image image`:
 ```
 $ ros --image myname/myimage:version
 ```
 
-You can build a custom local image based on an image from the docker hub (jaci/ros by default) using a custom local Dockerfile layer on top of it to automate installation of any desired packages or unique setup with `--customlayer path/to/Dockerfile new_image_name`
-  - The directory from which you run this command will cache the image name and ros version tag using set-local so you can launch with the default command in that directry subsequently and it will load your image seamlessly. 
-  - Roughly equivalent to simply loading the default image, installing a bunch of packages, commiting the container to an image named new_image_name:ros_version, and then manually calling ros set-local -i new_image_name:ros_version.
-  - Your custom Dockerfile should take a FROM argument to base the image upon
+You can build a custom local image based on an image from the docker hub (jaci/ros by default) applying a custom local Dockerfile layer on top of it to automate installation of any desired packages or unique setup with `--customlayer path/to/Dockerfile/ new_image_name ros_version`
+  - Roughly equivalent to simply loading the default image, installing a bunch of packages, commiting the container to an image named new_image_name:ros_version.
+  - Your custom Dockerfile should take a FROM argument to base the image upon, and a USER argument for the user name.
 
 ```
-$ ros --customlayer ~/path_to_dockerfile_directory/ myimage_name kinetic
 $ # will build myimage based on a kinetic base with additional layer as defined by the passed Dockerfile directory path. 
+$ ros --customlayer ~/path_to_dockerfile_directory/ myimage_name kinetic
+$ # specify the default image to load when called from this local host directory:
 $ ros-version set-local -i myimage:kinetic
 $ # This allows the following to load that custom image later when called from same directory path:
 $ ros
-$ # Or any other path you can still call the custom image by full name:tag
+$ # Or from any other host path you can still call the custom image by full name:tag
 $ ros --image myimage:kinetic
 
 $ # repeat for a melodic variant
 $ ros --customlayer ~/path_to_dockerfile_directory myimage melodic
-$ # specify only the base image name in the local path
+$ # specify only the base image name in the local path to support multiple variants
 $ ros-version set-local -i myimage
-$ # now you can call either variant from this directoy, specifying version
+$ # now you can call either variant from this directoy, specifying the ROS version
 $ ros melodic
 $ ros kinetic
 ```
