@@ -72,7 +72,8 @@ ros-launch() {
   local layer=
   local layername=
   local tag="melodic"
-  local network="host"
+  local network=
+  local hostname=
 
   # Try to detect nvidia support
   if command -v nvidia-smi > /dev/null; then
@@ -145,6 +146,11 @@ ros-launch() {
         shift
         shift
         ;;
+      --hostname)
+        hostname="$2"
+        shift
+        shift
+        ;;
       *)
         break
         ;;
@@ -176,14 +182,34 @@ ros-launch() {
       --env="XAUTHORITY=${XAUTH}"
     )
   fi
-  
+
   if [[ -z "$network" ]]; then
     # default use host network
+    echo "Using default 'host' network"
     args=( "${args[@]}" --net=host  )
+    
+    if [[ -z "$hostname" ]]; then
+      # default make the image name the hostname (so you know you are logged into docker :)
+      arr=(${image//:/ })
+      hostname=${arr[0]}
+    fi
+    args=( "${args[@]}" --hostname=${hostname} )
+    
+    if $ishost; then
+      echo "adding docker hostname ${hostname}:127.0.0.1" # prevent sudo error message with new hostname
+      args=( "${args[@]}" --add-host=${hostname}:127.0.0.1 )
+    fi
+  
   else
     # use user defined network
     args=( "${args[@]}" --net=${network} )
+    
+    # user defined hostname, if provided
+    if [[ -n "$hostname" ]]; then
+      args=( "${args[@]}" --hostname=${hostname} )
+    fi
   fi
+  
 
   if [[ -n "$nvidia" ]]; then
     # NVIDIA Runtime Enabled
