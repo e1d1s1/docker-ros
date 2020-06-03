@@ -1,6 +1,6 @@
 DISTRO=kinetic
 
-IMAGE=jaci/ros:$(DISTRO)
+IMAGE=e1d1s1/ros:$(DISTRO)
 IMAGE_TYPES=ros-base robot perception desktop desktop-full
 
 ALL_BUILDS=$(patsubst %, build-%, $(IMAGE_TYPES))

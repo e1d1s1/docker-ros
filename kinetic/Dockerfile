@@ -1,6 +1,7 @@
 # Based on https://github.com/osrf/docker_images
-# FROM nvidia/opengl:1.1-glvnd-runtime-ubuntu16.04
 FROM nvidia/cudagl:10.1-runtime-ubuntu16.04
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 # install packages
 RUN apt-get update && apt-get install -q -y \
@@ -8,6 +9,10 @@ RUN apt-get update && apt-get install -q -y \
     gnupg2 \
     lsb-release \
     sudo \
+    wget \
+    rsync \
+    python-pip \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # setup keys
@@ -21,6 +26,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python-rosdep \
     python-rosinstall \
     python-vcstools \
+    python-catkin-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # setup environment

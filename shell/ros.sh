@@ -3,7 +3,7 @@
 #defined in bash.rc
 #DOCKER_ROS_INSTALL=<path_to_your_docker-ros>
 ROS_DOCKER_PATH=${DOCKER_ROS_INSTALL:-~/.docker-ros/}
-ROS_DOCKER_DEFAULT_IMG=jaci/ros
+ROS_DOCKER_DEFAULT_IMG=e1d1s1/ros
 
 ROS_DOCKER_HOME=${ROS_DOCKER_HOME:-$HOME}
 
@@ -74,6 +74,7 @@ ros-launch() {
   local tag="melodic"
   local network=
   local hostname=
+  local privileged=
 
   # Try to detect nvidia support
   if command -v nvidia-smi > /dev/null; then
@@ -90,6 +91,10 @@ ros-launch() {
         ;;
       --unconfine)
         confined=
+        shift
+        ;;
+      --unprivileged)
+        privileged=
         shift
         ;;
       --nvidia)
@@ -247,6 +252,10 @@ ros-launch() {
     # To avoid having to add new apparmor profiles, we can run unconfined. The ROS installation
     # should be fairly trusted, but it can be avoided by setting ROS_DOCKER_UNCONFINED to false
     args=( "${args[@]}" --security-opt apparmor:unconfined )
+  fi
+  
+  if [[ -z "$privileged" ]]; then
+    args=( "${args[@]}" --privileged )
   fi
 
   args=( "${args[@]}" "${dockerargs[@]}" $image )
