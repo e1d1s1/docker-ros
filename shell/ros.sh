@@ -193,28 +193,31 @@ ros-launch() {
     echo "Using default 'host' network"
     args=( "${args[@]}" --net=host  )
     
-    if [[ -z "$hostname" ]]; then
-      # default make the image name the hostname (so you know you are logged into docker :)
-      arr=(${image//:/ })
-      hostname=${arr[0]}
-    fi
-    args=( "${args[@]}" --hostname=${hostname} )
+#    if [[ -z "$hostname" ]]; then
+#      # default make the image name the hostname (so you know you are logged into docker :)
+#      arr=(${image//:/ })
+#      hostname=${arr[0]}
+#    fi
+#    args=( "${args[@]}" --hostname=${hostname} )
+#    
+#    echo "adding docker hostname ${hostname}:127.0.0.1" # prevent sudo error message with new hostname
+#    args=( "${args[@]}" --add-host=${hostname}:127.0.0.1 )
     
-    if $ishost; then
-      echo "adding docker hostname ${hostname}:127.0.0.1" # prevent sudo error message with new hostname
-      args=( "${args[@]}" --add-host=${hostname}:127.0.0.1 )
-    fi
   
   else
     # use user defined network
     args=( "${args[@]}" --net=${network} )
-    
-    # user defined hostname, if provided
-    if [[ -n "$hostname" ]]; then
-      args=( "${args[@]}" --hostname=${hostname} )
-    fi
   fi
   
+  # user defined hostname, if provided
+  if [[ -n "$hostname" ]]; then
+    args=( "${args[@]}" --hostname=${hostname} )
+    
+    # prevent sudo error message with new hostname
+    args=( "${args[@]}" --add-host=${hostname}:127.0.0.1 )
+    args=( "${args[@]}" --add-host=${HOSTNAME}:127.0.0.1 )
+  fi
+
 
   if [[ -n "$nvidia" ]]; then
     # NVIDIA Runtime Enabled
