@@ -1,5 +1,5 @@
 # Based on https://github.com/osrf/docker_images
-FROM nvidia/cudagl:10.1-runtime-ubuntu16.04
+FROM nvidia/cudagl:10.2-devel-ubuntu16.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python-rosinstall \
     python-vcstools \
     python-catkin-tools \
+    python-wstool \
     && rm -rf /var/lib/apt/lists/*
 
 # setup environment

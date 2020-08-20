@@ -1,5 +1,6 @@
 # Based on https://github.com/osrf/docker_images
-FROM nvidia/vulkan:1.1.121-cuda-10.1-beta.0-ubuntu18.04
+# FROM nvidia/vulkan:1.1.121-cuda-10.1-beta.0-ubuntu18.04
+FROM nvidia/cudagl:10.2-devel-ubuntu18.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -32,6 +33,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python-rosinstall \
     python-vcstools \
     python-catkin-tools \
+    python-wstool \
     && rm -rf /var/lib/apt/lists/*
 
 # setup environment
